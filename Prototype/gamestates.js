@@ -12,14 +12,14 @@ class GameState {
 function prepareGameStates() {
     gameStates.normal = new GameState((state) => {
         if (myStructure.ideaQueue.length >= 5 || state.properFrameCount > 60 * 60) {
-            if (Math.random() < 0.1) {
+            if (random() < 0.1) {
                 currentGameState = gameStates.encounterBoss;
                 gameMessageSystem.pushMessage('Large structure incoming.');
                 return;
             }
         }
         else if (enemyStructureGroup.structureSet.length < myStructure.ideaQueue.length / 2) {
-            if (Math.random() < 0.03)
+            if (random() < 0.03)
                 createEnemy();
         }
         if (myStructureGroup.structureSet.length === 0) {
