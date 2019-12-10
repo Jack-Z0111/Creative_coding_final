@@ -1,16 +1,27 @@
+/*
+Final Project: shooter game
+Inspired by: 
+  FAL - Duel (https://www.openprocessing.org/sketch/453716)
+  FAL - Collapsing Ideas (https://www.openprocessing.org/sketch/470603)
+
+*/
+
 ArrayList<Star> stars = new ArrayList<Star>();
 ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
 ArrayList<Bullet> bullets = new ArrayList<Bullet>();
-int asteroidFrequency = 60; 
-int frequency = 4; 
-int points;
+ArrayList<Attack> attacks = new ArrayList<Attack>(); 
+
 Ship playerShip;
+Enemy enemyShip;
 EndScene end;
 
+int score = 0;
+
 void setup() {
-  // fullScreen(P2D);
   size(800, 700);
   playerShip = new Ship();
+  enemyShip = new Enemy(score);
+  score = 0;
   frameRate(60);
 }
 
@@ -19,22 +30,40 @@ void draw() {
   if (end != null) {
     end.drawEndScene();
   } else { 
-    background(245);
+    background(225);
     drawStar();
 
     drawAsteroid();
     fill(255, 0, 0, 100);
-    stroke(255);
+    stroke(12);
+    strokeWeight(5);
     drawBullet();
+    drawAttack();
     playerShip.drawShip();
+    enemyShip.drawEnemy();
 
     checkCollision();
+    checkAttack();
+    
+    textSize(18);
+    text(score, 400, 30);
   }
 }
 
 void drawBullet() {
-  for (int i = 0; i<bullets.size(); i++) {
+  for (int i = 0; i < bullets.size(); i++) {
     bullets.get(i).drawBullet();
+  }
+}
+
+void drawAttack() {
+  if (frameCount % 60 == 0) {
+    Attack a = new Attack(playerShip, enemyShip);
+    attacks.add(a);
+  }
+  for (int i = 0; i < attacks.size(); i++) {
+    Attack currentAttack = attacks.get(i);
+    currentAttack.drawAttack();
   }
 }
 
@@ -42,13 +71,12 @@ void checkCollision() {
   for (int i = 0; i < asteroids.size(); i ++) {
     Asteroid a = asteroids.get(i);
     if (a.checkCollision(playerShip) == true) {
-      end = new EndScene();
+      end = new EndScene(score);
     }
     for (int j = 0; j < bullets.size(); j ++) {
       Bullet b = bullets.get(j);
       if (a.checkCollision(b) == true) {
-        points ++;
-
+        score ++;
         asteroids.remove(a);
         bullets.remove(b);
         i --;
@@ -58,10 +86,18 @@ void checkCollision() {
   }
 }
 
+void checkAttack() {
+  for (int k = 0; k < attacks.size(); k ++) {
+    Attack ac = attacks.get(k);
+    if (ac.checkCollision(playerShip) == true) {
+      end = new EndScene(score);
+    }
+  }
+}
 
 void drawAsteroid() {
-  if (frameCount % asteroidFrequency == 0) {
-    asteroids.add(new Asteroid(random(150, 250)));
+  if (frameCount % 50 == 0) {
+    asteroids.add(new Asteroid(random(120, 230)));
   }
   for (int i = 0; i<asteroids.size(); i++) {
     Asteroid currentAsteroid = asteroids.get(i);
@@ -74,13 +110,13 @@ void drawAsteroid() {
 }
 
 void drawStar() {
-  strokeWeight(8);
+  strokeWeight(5);
   stroke(255);
-  if (frameCount % frequency == 0) {
+  if (frameCount % 4 == 0) {
     Star myStar = new Star();
     stars.add(myStar);
   }
-  for (int i = 0; i<stars.size(); i++) {
+  for (int i = 0; i < stars.size(); i++) {
     Star currentStar = stars.get(i);
     currentStar.drawStar();
   }
@@ -125,9 +161,10 @@ void resetGame() {
   stars.clear();
   bullets.clear();
   asteroids.clear();
+  attacks.clear();
   playerShip = new Ship();
   end = null;
-  points = 0;
+  score = 0;
 }
 
 class Ship {
@@ -161,36 +198,40 @@ class Ship {
       vx = 0;
     }   
     x += vx;   
-    if (y-20>=50 && y<height) {
+    if (y - 20 >= 50 && y < height) {
       y += vy;
     }
-    if (x+10 < 0)
+    if (x + 10 < 0) {
       x = width + 9;
-    
-    if (x-10 > width) x = -9;
-    
-		fill(#4DD2EB);
-		stroke(230);
+    }
+    if (x - 10 > width) { 
+      x = -9;
+    }
+    fill(#4DD2EB);
+    stroke(23);
     triangle(x, y - 17.32, x - 10, y, x + 10, y);
-		ellipse(x, y - 5, 20, 20)
+    ellipse(x, y - 5, 20, 20)
   }
 }
 
 class Asteroid {
   float size, x, y;
-  int vy = 5; 
+  int vy = 5;
+  float ay = random(0.05, 0.2);
 
-  Asteroid(float size) {
+  Asteroid(size) {
     this.size = size;
     this.x = random(width);
     this.y = -size;
   }
 
   void drawAsteroid() {
-    fill(170, 60);
-    stroke(150);
+    fill(#EB8288, 40);
+    stroke(120);
+    strokeWeight(4);
     ellipse(x, y, size, size);
     y += vy;
+    vy += ay;
   }
 
   boolean checkCollision(Object other) {
@@ -199,8 +240,8 @@ class Asteroid {
       float apothem = 10 * tan(60);
       float distance = dist(x, y, playerShip.x, playerShip.y-apothem);
       if (distance < size/2 + apothem + 10) {
-        fill(255, 0, 0, 100);
-        fill(255);
+        //fill(255, 0, 0, 100);
+        //fill(255);
         
         return true;
       }
@@ -208,9 +249,7 @@ class Asteroid {
       Bullet bullet = (Bullet) other;
       float distance = dist(x, y, bullet.x, bullet.y); 
       if (distance <= size/2 + bullet.size/2 ) {
-        fill(0, 255, 0, 100);
-        //rect(playerShip.x-10, playerShip.y-10, 20, 20);
-        fill(255);
+
         
         return true;
       }
@@ -233,7 +272,7 @@ class Bullet {
   
   void drawBullet() {
     fill(0);
-		noStroke();
+    noStroke();
     quad(x, y, x + size / 2, y + size / 2, x, y + size, x - size / 2, y + size / 2);
     y += vy;
   }    
@@ -241,57 +280,122 @@ class Bullet {
 
 class Star {
   float x, y;
-  int vy;
+  float vy;
   
   Star() { 
     this.x = random(width);
     this.y = 0;
-    this.vy = 8; 
+    this.vy = 6.5; 
   }
   
   void drawStar() {
     y += vy;
-    point(x,y);
+    triangle(x, y, x - 2, y - 3.5, x + 2, y - 3.5);
   }
 }
 
 class EndScene {
-  String gameOverText, buttonText, pointsText;
+  String gameOverText, scoreText;
   int buttonX, buttonY, buttonW, buttonH;
-	
-  EndScene() {
-    this.gameOverText = "!";
-    this.buttonText = "Retry";
+  
+  EndScene(int score) {
+    this.gameOverText = "Game Over";
+    this.scoreText = "Score: " + score;
     this.buttonW = 200;
-    this.buttonH = 100;
+    this.buttonH = 180;
     this.buttonX = width/2 - this.buttonW/2;
     this.buttonY = height/2 - this.buttonH/2;
   }
 
   void drawEndScene() {
-    fill(#5AE8BC);
+    fill(225);
     rect(0, 0, width, height);
     rect(buttonX, buttonY, buttonW, buttonH);
 
     stroke(255);
     fill(255);
     textSize(60);
-    text(this.gameOverText, width/3, height/4);
+    text(this.gameOverText, width/3.26, height/4);
+    text(this.scoreText, width/2.8, 3.2 * height / 4);
 
 
     fill(#FF6A63);
     noStroke();
     rect(buttonX, buttonY, buttonW, buttonH);
-    fill(200);
-    text(buttonText, buttonX+25, buttonY+70);
+    fill(215);
+    triangle(buttonX + 65, buttonY + 40, buttonX + 65, buttonY + 140, buttonX + 150, buttonY + 90);
     
 
   }
 
   boolean mouseOverButton() {
-    return (mouseX > buttonX 
-      && mouseX < buttonX + buttonW
-      && mouseY > buttonY
-      && mouseY < buttonY + buttonH);
+    return (mouseX > buttonX && mouseX < buttonX + buttonW && mouseY > buttonY && mouseY < buttonY + buttonH);
+  }
+}
+
+class Enemy {
+  float x, y, vx;
+  int s;
+  
+  Enemy(int score) {
+    this.x = width/2;
+    this.y = 50;
+    this.vx = 3;
+    this.s = score;
+  }
+  
+  void drawEnemy() {    
+    if (x + 60 > width) {
+      vx = -vx;
+    }
+    else if (x - 60 < 0) { 
+      vx = -vx;
+    }
+    x += vx;
+    
+    fill(100);
+    noStroke();
+    rect(this.x - 20, this.y - 10, 40, 10);
+    triangle(this.x - 8, this.y, this.x + 8, this.y, this.x, this.y + 10);
+    triangle(this.x - 30, this.y - 10, this.x - 20, this.y - 10, this.x - 20, this.y + 8);
+    triangle(this.x + 30, this.y - 10, this.x + 20, this.y - 10, this.x + 20, this.y + 8);
+    
+    textSize(12);
+    text(s, x - 4, y - 12);
+  
+  }
+}
+
+
+
+class Attack {
+  PVector p, v, a;
+  float size;
+  
+  Attack(Ship playerShip, Enemy enemyShip) {
+    this.p = new PVector(enemyShip.x, enemyShip.y + 5);
+    this.a = new PVector(playerShip.x - enemyShip.x, playerShip.y - enemyShip.y);
+    this.v = new PVector();
+    this.size = 20;
+  }
+  
+  void drawAttack() {
+    a.limit(0.5);
+    v.add(this.a);
+    v.limit(7);
+    p.add(this.v);
+    fill(#EB3F1A);
+    noStroke();
+    ellipse(p.x, p.y, size, size)
+  }
+  boolean checkCollision(Object other) {
+    if (other instanceof Ship) {
+      Ship playerShip = (Ship) other;
+      float apothem = 10 * tan(60);
+      float distance = dist(p.x, p.y, playerShip.x, playerShip.y-apothem);
+      if (distance < size / 3) {
+        return true;
+      }
+    }
   }
 }
