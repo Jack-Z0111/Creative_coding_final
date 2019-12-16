@@ -4,7 +4,11 @@ Inspired by:
   FAL - Duel (https://www.openprocessing.org/sketch/453716)
   FAL - Collapsing Ideas (https://www.openprocessing.org/sketch/470603)
 
+Things I failed to do:
+I was trying to add a background music. But the console shows a weird bug with the filename. 
+The boolean checkCollision can not find the object when too many bullets collide with stars. 
 */
+
 
 ArrayList<Star> stars = new ArrayList<Star>();
 ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
@@ -17,12 +21,24 @@ EndScene end;
 
 int score = 0;
 
+boolean space = true;
+boolean soundEnabled;
+//var audio;
+
 void setup() {
   size(800, 700);
   playerShip = new Ship();
   enemyShip = new Enemy(score);
   score = 0;
   frameRate(60);
+  soundEnabled = true;
+  /*
+  audio = new Audio("luna_dial.mp3");
+  audio.play();
+  audio.loop = true;
+  audio.volume = 0.3; 
+  */
+  
 }
 
 void draw() {
@@ -44,11 +60,11 @@ void draw() {
 
     checkCollision();
     checkAttack();
-    
     textSize(18);
-    text(score, 400, 30);
+    text("Score: " +score, 380, 30);
   }
 }
+
 
 void drawBullet() {
   for (int i = 0; i < bullets.size(); i++) {
@@ -57,9 +73,16 @@ void drawBullet() {
 }
 
 void drawAttack() {
-  if (frameCount % 60 == 0) {
-    Attack a = new Attack(playerShip, enemyShip);
-    attacks.add(a);
+  if (score <= 15) {
+    if (frameCount % 50 == 0) {
+      Attack a = new Attack(playerShip, enemyShip);
+      attacks.add(a);
+    }
+  } else if (score > 15) {
+    if (frameCount % 30 == 0) {
+      Attack a = new Attack(playerShip, enemyShip);
+      attacks.add(a);
+    }
   }
   for (int i = 0; i < attacks.size(); i++) {
     Attack currentAttack = attacks.get(i);
@@ -99,7 +122,7 @@ void drawAsteroid() {
   if (frameCount % 50 == 0) {
     asteroids.add(new Asteroid(random(120, 230)));
   }
-  for (int i = 0; i<asteroids.size(); i++) {
+  for (int i = 0; i < asteroids.size(); i++) {
     Asteroid currentAsteroid = asteroids.get(i);
     currentAsteroid.drawAsteroid();
     if (currentAsteroid.y > height + currentAsteroid.size) {
@@ -133,9 +156,10 @@ void keyPressed() {
     } else if (keyCode == RIGHT) {
       playerShip.rightPressed = true;
     }
-  } else if (key == ' ') {
+  } else if (space == true && key == ' ') {
     Bullet b = new Bullet(playerShip);
     bullets.add(b);
+    space = false;
   }
 }
 
@@ -149,6 +173,7 @@ void keyReleased() {
   } else if (keyCode == RIGHT) {
     playerShip.rightPressed = false;
   }
+  space = true;
 }
 
 void mousePressed() {
@@ -163,6 +188,7 @@ void resetGame() {
   asteroids.clear();
   attacks.clear();
   playerShip = new Ship();
+  //audio.volume = 0.3;
   end = null;
   score = 0;
 }
@@ -210,7 +236,7 @@ class Ship {
     fill(#4DD2EB);
     stroke(23);
     triangle(x, y - 17.32, x - 10, y, x + 10, y);
-    ellipse(x, y - 5, 20, 20)
+    ellipse(x, y - 5, 20, 20);
   }
 }
 
@@ -219,7 +245,7 @@ class Asteroid {
   int vy = 5;
   float ay = random(0.05, 0.2);
 
-  Asteroid(size) {
+  Asteroid(float size) {
     this.size = size;
     this.x = random(width);
     this.y = -size;
@@ -240,17 +266,14 @@ class Asteroid {
       float apothem = 10 * tan(60);
       float distance = dist(x, y, playerShip.x, playerShip.y-apothem);
       if (distance < size/2 + apothem + 10) {
-        //fill(255, 0, 0, 100);
-        //fill(255);
+        fill(255, 50);
         
         return true;
       }
     } else if (other instanceof Bullet) {
       Bullet bullet = (Bullet) other;
       float distance = dist(x, y, bullet.x, bullet.y); 
-      if (distance <= size/2 + bullet.size/2 ) {
-
-        
+      if (distance <= size/2 + bullet.size/2 ) { 
         return true;
       }
     }
@@ -325,7 +348,7 @@ class EndScene {
     fill(215);
     triangle(buttonX + 65, buttonY + 40, buttonX + 65, buttonY + 140, buttonX + 150, buttonY + 90);
     
-
+    //audio.volume = 0.1;
   }
 
   boolean mouseOverButton() {
@@ -386,7 +409,7 @@ class Attack {
     p.add(this.v);
     fill(#EB3F1A);
     noStroke();
-    ellipse(p.x, p.y, size, size)
+    ellipse(p.x, p.y, size, size);
   }
   boolean checkCollision(Object other) {
     if (other instanceof Ship) {
@@ -396,6 +419,6 @@ class Attack {
       if (distance < size / 3) {
         return true;
       }
-    }
-  }
+    } return false;
+  } 
 }
